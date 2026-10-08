@@ -3,7 +3,7 @@
 Package name availability is provisional until registration. Configure a pending trusted publisher in the PyPI account that should own SecuLens:
 
 - PyPI project name: `seculens`
-- GitHub owner: `masahirocom`
+- GitHub owner: `masahiroid`
 - GitHub repository: `seculens-python`
 - Workflow filename: `publish.yml`
 - Environment: `pypi`

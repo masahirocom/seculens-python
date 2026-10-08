@@ -20,7 +20,7 @@ Choose an existing SBOM assessment or SBOM generation, then supply the requested
 
 ## Install
 
-Until PyPI publication, install the wheel from [GitHub releases](https://github.com/masahirocom/seculens-python/releases). For development:
+Until PyPI publication, install the wheel from [GitHub releases](https://github.com/masahiroid/seculens-python/releases). For development:
 
 ```sh
 python -m venv .venv
@@ -68,7 +68,7 @@ SPDX `AND` requires all branches to be allowed; `OR` accepts an allowed option. 
 
 ## Python analysis
 
-`--source` parses `.py` files without importing or executing them. Rules review `eval` / `exec`, OS shell calls, `subprocess` with literal `shell=True`, pickle deserialization and YAML loading without an explicit safe loader. Complexity review triggers above cyclomatic 10 or nesting 4. Imports and aliases are recognized syntactically; shadowing, dynamic aliases, data flow and exploitability are not resolved. Syntax errors become coverage findings. Virtual environments, dependency/build directories and symlinks are skipped. JS/TS source analysis belongs to the [TypeScript implementation](https://github.com/masahirocom/seculens); PHP implementation is planned.
+`--source` parses `.py` files without importing or executing them. Rules review `eval` / `exec`, OS shell calls, `subprocess` with literal `shell=True`, pickle deserialization and YAML loading without an explicit safe loader. Complexity review triggers above cyclomatic 10 or nesting 4. Imports and aliases are recognized syntactically; shadowing, dynamic aliases, data flow and exploitability are not resolved. Syntax errors become coverage findings. Virtual environments, dependency/build directories and symlinks are skipped. JS/TS source analysis belongs to the [TypeScript implementation](https://github.com/masahiroid/seculens); PHP implementation is planned.
 
 ## Exit status and API
 

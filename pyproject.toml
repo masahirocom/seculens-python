@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "seculens"
-version = "0.3.0"
+version = "0.3.1"
 description = "Independent Python SBOM vulnerability matching, license policies, static analysis and Word reports"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,9 +39,9 @@ dev = ["pytest>=8,<10", "ruff>=0.12,<1", "build>=1.2,<2", "twine>=6,<8", "pip-au
 seculens = "seculens.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/masahirocom/seculens-python"
-Repository = "https://github.com/masahirocom/seculens-python"
-Issues = "https://github.com/masahirocom/seculens-python/issues"
+Homepage = "https://github.com/masahiroid/seculens-python"
+Repository = "https://github.com/masahiroid/seculens-python"
+Issues = "https://github.com/masahiroid/seculens-python/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/seculens"]

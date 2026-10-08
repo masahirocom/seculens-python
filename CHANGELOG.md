@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Move repository links and PyPI publisher configuration to the GitHub owner `masahiroid`.
+
 ## 0.3.0
 
 - Start an interactive setup wizard when `seculens` is run without arguments.
