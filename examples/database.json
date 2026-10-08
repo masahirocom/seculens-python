@@ -1,0 +1,35 @@
+{
+  "records": [
+    {
+      "id": "SECULENS-DEMO-001",
+      "summary": "Demonstration advisory for boundary testing",
+      "affected": [
+        {
+          "package": {
+            "name": "lodash",
+            "ecosystem": "npm"
+          },
+          "ranges": [
+            {
+              "type": "SEMVER",
+              "events": [
+                {
+                  "introduced": "0"
+                },
+                {
+                  "fixed": "4.17.21"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "references": [
+        {
+          "type": "WEB",
+          "url": "https://example.org/demo-advisory"
+        }
+      ]
+    }
+  ]
+}
