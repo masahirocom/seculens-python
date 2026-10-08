@@ -8,7 +8,7 @@ from .matcher import match_record
 from .sbom import parse_sbom
 from .word import write_word_report
 
-__version__ = "0.3.2"
+__version__ = "1.0.0"
 __all__ = [
     "scan_sbom",
     "sha256",

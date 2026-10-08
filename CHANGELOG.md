@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0
+
+- Align the Python, JavaScript/TypeScript and PHP release versions at 1.0.0.
+- Includes SPDX/CycloneDX assessment, native vulnerability matching, license policies, language-native AST review, bilingual wizard and customer Word reports.
+- Includes output file safety fixes from the preceding maintenance release.
+
 ## 0.3.2
 
 - Protect report and SBOM output from destination symlink overwrite, and restrict new report file permissions.

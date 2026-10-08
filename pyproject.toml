@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "seculens"
-version = "0.3.2"
+version = "1.0.0"
 description = "Independent Python SBOM vulnerability matching, license policies, static analysis and Word reports"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ license-files = ["LICENSE", "NOTICE", "src/seculens/assets/OFL.txt"]
 authors = [{name = "SecuLens contributors"}]
 keywords = ["sbom", "security", "spdx", "cyclonedx", "vulnerability", "static-analysis", "docx"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 5 - Production/Stable",
   "Environment :: Console",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",

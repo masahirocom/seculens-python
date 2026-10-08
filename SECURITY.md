@@ -1,6 +1,6 @@
 # Security policy
 
-This is an early release. Do not treat a clean result as proof of safety or compliance.
+The latest SecuLens 1.x release is supported. Do not treat a clean result as proof of safety or compliance.
 
 Report a suspected vulnerability privately through GitHub's private vulnerability reporting for this repository. Avoid posting secrets or private source code in public issues.
 

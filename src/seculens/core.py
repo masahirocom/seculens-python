@@ -42,7 +42,7 @@ def scan_sbom(
     policy = validate_policy({} if policy is None else policy)
     report: dict[str, Any] = {
         "schemaVersion": "1.1",
-        "tool": {"name": "SecuLens", "version": "0.3.2"},
+        "tool": {"name": "SecuLens", "version": "1.0.0"},
         "createdAt": created_at
         or datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "customer": customer,
