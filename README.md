@@ -76,7 +76,7 @@ SPDX `AND` requires all branches to be allowed; `OR` accepts an allowed option. 
 
 ## Python analysis
 
-`--source` parses `.py` files without importing or executing them. Rules review `eval` / `exec`, OS shell calls, `subprocess` with literal `shell=True`, pickle deserialization and YAML loading without an explicit safe loader. Complexity review triggers above cyclomatic 10 or nesting 4. Imports and aliases are recognized syntactically; shadowing, dynamic aliases, data flow and exploitability are not resolved. Syntax errors become coverage findings. Virtual environments, dependency/build directories and symlinks are skipped. JS/TS source analysis belongs to the [TypeScript implementation](https://github.com/masahiroid/seculens); PHP implementation is planned.
+`--source` parses `.py` files without importing or executing them. Rules review `eval` / `exec`, OS shell calls, `subprocess` with literal `shell=True`, pickle deserialization and YAML loading without an explicit safe loader. Complexity review triggers above cyclomatic 10 or nesting 4. Imports and aliases are recognized syntactically; shadowing, dynamic aliases, data flow and exploitability are not resolved. Syntax errors become coverage findings. Virtual environments, dependency/build directories and symlinks are skipped. JS/TS source analysis belongs to the [TypeScript implementation](https://github.com/masahiroid/seculens); PHP source analysis is available in the [independent PHP implementation](https://github.com/masahiroid/seculens-php).
 
 ## Exit status and API
 
