@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "seculens"
-version = "0.3.1"
+version = "0.3.2"
 description = "Independent Python SBOM vulnerability matching, license policies, static analysis and Word reports"
 readme = "README.md"
 requires-python = ">=3.10"

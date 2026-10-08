@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from .analysis import analyze
@@ -32,7 +34,7 @@ def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="seculens", description="SBOM assessment and evidence-based customer reports"
     )
-    parser.add_argument("--version", action="version", version="0.3.1")
+    parser.add_argument("--version", action="version", version="0.3.2")
     commands = parser.add_subparsers(dest="command", required=True)
     interactive = commands.add_parser("wizard", help="Interactive setup in English or Japanese")
     interactive.add_argument("--lang", choices=("en", "ja"))
@@ -79,10 +81,16 @@ def _main(argv: list[str] | None = None) -> int:
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=300,
+                env={**os.environ, "SYFT_CHECK_FOR_APP_UPDATE": "false"},
             )
             parse_sbom(_json(result.stdout))
             opts.output.parent.mkdir(parents=True, exist_ok=True)
-            opts.output.write_text(result.stdout, encoding="utf-8")
+            with tempfile.TemporaryDirectory(prefix=".seculens-", dir=opts.output.parent) as folder:
+                temporary = Path(folder) / "sbom.json"
+                temporary.write_text(result.stdout, encoding="utf-8")
+                temporary.chmod(0o600)
+                temporary.replace(opts.output)
             print(
                 f"SBOMを保存しました: {opts.output}"
                 if ui_language == "ja"
@@ -117,19 +125,25 @@ def _main(argv: list[str] | None = None) -> int:
         if opts.source:
             report["findings"].extend(analyze(opts.source))
             report["sourceAnalysis"] = {"language": "Python", "target": opts.source.resolve().name}
-        opts.output.mkdir(parents=True, exist_ok=True)
-        (opts.output / "sbom.json").write_text(input_text, encoding="utf-8")
-        (opts.output / "database.json").write_text(database_text, encoding="utf-8")
-        (opts.output / "report.json").write_text(
-            json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
-        write_word_report(
-            report,
-            opts.output / "report.docx",
-            opts.lang,
-            style=opts.report_style,
-            issuer=opts.issuer,
-        )
+        opts.output.mkdir(parents=True, exist_ok=True, mode=0o700)
+        with tempfile.TemporaryDirectory(prefix=".seculens-", dir=opts.output) as folder:
+            temporary = Path(folder)
+            (temporary / "sbom.json").write_text(input_text, encoding="utf-8")
+            (temporary / "database.json").write_text(database_text, encoding="utf-8")
+            (temporary / "report.json").write_text(
+                json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            write_word_report(
+                report,
+                temporary / "report.docx",
+                opts.lang,
+                style=opts.report_style,
+                issuer=opts.issuer,
+            )
+            for name in ("sbom.json", "database.json", "report.json", "report.docx"):
+                artifact = temporary / name
+                artifact.chmod(0o600)
+                artifact.replace(opts.output / name)
         print(
             f"構成部品 {len(parsed['components'])}件、指摘 {len(report['findings'])}件。レポート: {opts.output}"
             if ui_language == "ja"

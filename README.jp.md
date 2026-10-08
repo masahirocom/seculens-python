@@ -133,7 +133,5 @@ JSONスキーマ1.1には任意の`severity`（重大度、任意の基本スコ
 参照：[CVSS 3.1仕様](https://www.first.org/cvss/v3.1/specification-document)、[OSVスキーマ](https://ossf.github.io/osv-schema/)。
 
 ```python
-write_word_report(
-    report, "customer.docx", language="ja", style="customer", issuer="評価チーム"
-)
+write_word_report(report, "customer.docx", language="ja", style="customer", issuer="評価チーム")
 ```

@@ -111,3 +111,27 @@ def test_osv_fetch_pagination_and_no_version_sent(monkeypatch):
         {"package": {"name": "demo", "ecosystem": "PyPI"}},
         {"package": {"name": "demo", "ecosystem": "PyPI"}, "page_token": "p2"},
     ]
+
+
+def test_report_output_does_not_follow_symlinks(tmp_path):
+    sentinel = tmp_path / "private.txt"
+    sentinel.write_text("DO NOT CHANGE")
+    for name in ("sbom.json", "database.json", "report.json", "report.docx"):
+        (tmp_path / name).symlink_to(sentinel)
+    assert (
+        main(
+            [
+                "scan",
+                str(ROOT / "examples/cyclonedx.json"),
+                "--db",
+                str(ROOT / "examples/database.json"),
+                "-o",
+                str(tmp_path),
+            ]
+        )
+        == 0
+    )
+    assert sentinel.read_text() == "DO NOT CHANGE"
+    for name in ("sbom.json", "database.json", "report.json", "report.docx"):
+        assert not (tmp_path / name).is_symlink()
+        assert (tmp_path / name).stat().st_mode & 0o077 == 0

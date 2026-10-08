@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2
+
+- Protect report and SBOM output from destination symlink overwrite, and restrict new report file permissions.
+- Bound external SBOM generation to five minutes.
+
+
 ## 0.3.1
 
 - Move repository links and PyPI publisher configuration to the GitHub owner `masahiroid`.
