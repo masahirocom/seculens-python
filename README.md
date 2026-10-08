@@ -20,7 +20,14 @@ Choose an existing SBOM assessment or SBOM generation, then supply the requested
 
 ## Install
 
-Until PyPI publication, install the wheel from [GitHub releases](https://github.com/masahiroid/seculens-python/releases). For development:
+Install from [PyPI](https://pypi.org/project/seculens/):
+
+```sh
+python -m pip install seculens
+seculens
+```
+
+Wheels are also available from [GitHub releases](https://github.com/masahiroid/seculens-python/releases). For development:
 
 ```sh
 python -m venv .venv
