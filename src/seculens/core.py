@@ -11,6 +11,7 @@ from .database import validate_database
 from .licenses import license_findings, validate_policy
 from .matcher import match_record, same_package, supported_version
 from .sbom import parse_sbom
+from .severity import merge_severity, record_severity
 
 LIMITATIONS = [
     "No match means no matching record in the supplied database snapshot, not absence of vulnerabilities.",
@@ -40,8 +41,8 @@ def scan_sbom(
     validate_database(records)
     policy = validate_policy({} if policy is None else policy)
     report: dict[str, Any] = {
-        "schemaVersion": "1.0",
-        "tool": {"name": "SecuLens", "version": "0.1.0"},
+        "schemaVersion": "1.1",
+        "tool": {"name": "SecuLens", "version": "0.2.0"},
         "createdAt": created_at
         or datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         "customer": customer,
@@ -119,6 +120,7 @@ def scan_sbom(
                     "summary": record.get("summary") or record["id"],
                     "evidence": f"{component['ecosystem']}:{component['name']}@{component['version']}; matched against affected versions/ranges in {record['id']}",
                     "recommendation": "Review the advisory references for a fixed version and validate the upgrade.",
+                    "severity": record_severity(record, component),
                     "aliases": record.get("aliases", []),
                     "references": [ref["url"] for ref in record.get("references", [])],
                 }
@@ -149,6 +151,7 @@ def scan_sbom(
                     continue
                 all_ids = sorted(identities | {other["ruleId"], *other["aliases"]})
                 merged.update(
+                    severity=merge_severity(merged["severity"], other["severity"]),
                     ruleId=all_ids[0],
                     aliases=all_ids[1:],
                     references=sorted(set(merged["references"] + other["references"])),

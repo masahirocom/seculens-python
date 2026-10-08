@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="seculens", description="SBOM assessment and evidence-based customer reports"
     )
-    parser.add_argument("--version", action="version", version="0.1.0")
+    parser.add_argument("--version", action="version", version="0.2.0")
     commands = parser.add_subparsers(dest="command", required=True)
     sbom = commands.add_parser("sbom", help="Generate CycloneDX or SPDX JSON using Syft")
     sbom.add_argument("project", type=Path)
@@ -40,6 +40,9 @@ def main(argv: list[str] | None = None) -> int:
     scan.add_argument("--policy", type=Path)
     scan.add_argument("--source", type=Path, help="Run Python AST review rules")
     scan.add_argument("--customer", default="Customer")
+    scan.add_argument("--target", help="Human-readable system or project name")
+    scan.add_argument("--report-style", choices=("standard", "customer"), default="standard")
+    scan.add_argument("--issuer", default="", help="Report preparer name for the customer cover")
     scan.add_argument("--lang", choices=("en", "ja"), default="en")
     scan.add_argument("-o", "--output", type=Path, default=Path("reports"))
     scan.add_argument("--fail-on-findings", action="store_true")
@@ -78,20 +81,27 @@ def main(argv: list[str] | None = None) -> int:
             input_text,
             records,
             customer=opts.customer,
-            target=opts.sbom.name,
+            target=opts.target or opts.sbom.name,
             policy=policy,
             database_source=opts.db.name if opts.db else "OSV API candidate snapshot",
             database_hash=sha256(database_text),
         )
         if opts.source:
             report["findings"].extend(analyze(opts.source))
+            report["sourceAnalysis"] = {"language": "Python", "target": opts.source.resolve().name}
         opts.output.mkdir(parents=True, exist_ok=True)
         (opts.output / "sbom.json").write_text(input_text, encoding="utf-8")
         (opts.output / "database.json").write_text(database_text, encoding="utf-8")
         (opts.output / "report.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
-        write_word_report(report, opts.output / "report.docx", opts.lang)
+        write_word_report(
+            report,
+            opts.output / "report.docx",
+            opts.lang,
+            style=opts.report_style,
+            issuer=opts.issuer,
+        )
         print(
             f"{len(parsed['components'])} components; {len(report['findings'])} findings. Reports: {opts.output}"
         )

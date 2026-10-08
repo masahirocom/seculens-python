@@ -19,6 +19,9 @@ from docx.oxml.ns import qn
 from docx.shared import Mm, Pt, RGBColor
 from lxml import etree
 
+from .customer_report import front, ordered_findings, report_id, severity_detail
+from .customer_report import table as customer_table
+
 _CATEGORIES = {
     "vulnerability": "既知の脆弱性",
     "license": "ライセンス評価",
@@ -95,15 +98,31 @@ def _reference(document: Any, url: str, text: str) -> None:
     paragraph._p.append(link)
 
 
-def write_word_report(report: dict[str, Any], file: str | Path, language: str = "en") -> None:
+def write_word_report(
+    report: dict[str, Any],
+    file: str | Path,
+    language: str = "en",
+    *,
+    style: str = "standard",
+    issuer: str = "",
+) -> None:
     if language not in ("en", "ja"):
         raise ValueError("Language must be en or ja")
+    if style not in ("standard", "customer"):
+        raise ValueError("Report style must be standard or customer")
+    customer_mode = style == "customer"
     ja = language == "ja"
     document = Document()
     section = document.sections[0]
     section.page_width, section.page_height = Mm(210), Mm(297)
     section.top_margin = section.bottom_margin = section.left_margin = section.right_margin = Mm(20)
-    for name, size in (("Normal", 10.5), ("Title", 18), ("Heading 1", 14), ("Heading 2", 11.5)):
+    for name, size in (
+        ("Normal", 10.5),
+        ("Title", 18),
+        ("Heading 1", 14),
+        ("Heading 2", 11.5),
+        ("Heading 3", 10.5),
+    ):
         style = document.styles[name]
         for border in style.element.findall(".//" + qn("w:pBdr")):
             border.getparent().remove(border)
@@ -117,7 +136,7 @@ def write_word_report(report: dict[str, Any], file: str | Path, language: str = 
             style.paragraph_format.keep_with_next = True
     if ja:
         _embed_font(document)
-    document.core_properties.author = "SecuLens"
+    document.core_properties.author = issuer or "SecuLens"
     document.core_properties.title = "Software Security Assessment Report"
     p = document.add_paragraph
 
@@ -127,66 +146,86 @@ def write_word_report(report: dict[str, Any], file: str | Path, language: str = 
     def status(value: str) -> str:
         return _STATUS.get(value, value) if ja else value
 
-    findings = report["findings"]
+    findings = ordered_findings(report) if customer_mode else report["findings"]
     components = report["sbom"]["components"]
     vulnerable = len({f["subject"] for f in findings if f["category"] == "vulnerability"})
     unresolved = sum(c["status"] == "unassessed" for c in report["checks"])
-    document.add_heading(
-        "ソフトウェアセキュリティ検査報告書" if ja else "Software Security Assessment Report", 0
-    )
-    p(f"{report['customer']} | SecuLens {report['tool']['version']}")
-    p(f"{'対象' if ja else 'Target'} {report['target']} | {report['createdAt']}")
-    p(
-        f"SBOM内の{len(components)}件の構成部品を評価しました。既知の脆弱性に該当する部品は{vulnerable}件、脆弱性照合が未判定の部品は{unresolved}件です。以下の指摘と確認事項に沿って対応してください。"
-        if ja
-        else f"Assessed {len(components)} SBOM components. {vulnerable} components matched known vulnerability records; {unresolved} components have incomplete vulnerability assessments. Review the findings and follow-up actions below."
-    )
-    document.add_heading("検査範囲と根拠" if ja else "Scope and Evidence", 1)
-    p(f"{report['sbom']['format']} {report['sbom']['version']}")
-    p(f"SBOM SHA256 {report['sbomSha256']}")
-    p(f"DB {report['database']['source']}")
-    p(f"DB SHA256 {report['database']['sha256']}")
-    table = document.add_table(rows=1, cols=2)
-    table.style = "Table Grid"
-    table.rows[0].cells[0].text = "分類" if ja else "Category"
-    table.rows[0].cells[1].text = "指摘件数" if ja else "Findings"
-    for category, label in _CATEGORIES.items():
-        cells = table.add_row().cells
-        cells[0].text = label if ja else category
-        cells[1].text = str(sum(f["category"] == category for f in findings))
-    table.autofit = False
-    table.columns[0].width, table.columns[1].width = Mm(120), Mm(50)
-    borders = OxmlElement("w:tblBorders")
-    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
-        item = OxmlElement("w:" + edge)
-        for attr, value in (("val", "single"), ("sz", "4"), ("color", "D9D9D9")):
-            item.set(qn("w:" + attr), value)
-        borders.append(item)
-    table._tbl.tblPr.append(borders)
-    for row_index, row in enumerate(table.rows):
-        for column, cell in enumerate(row.cells):
-            cell.width = Mm(120 if column == 0 else 50)
-            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            for paragraph in cell.paragraphs:
-                paragraph.paragraph_format.space_before = Pt(4)
-                paragraph.paragraph_format.space_after = Pt(4)
-                paragraph.alignment = (
-                    WD_ALIGN_PARAGRAPH.LEFT if column == 0 else WD_ALIGN_PARAGRAPH.CENTER
-                )
-            if row_index == 0:
-                shading = OxmlElement("w:shd")
-                shading.set(qn("w:fill"), "E7EDF3")
-                cell._tc.get_or_add_tcPr().append(shading)
+    if customer_mode:
+        section.different_first_page_header_footer = True
+        footer = section.footer.paragraphs[0]
+        footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        footer.add_run(f"SecuLens | {report_id(report)} | ")
+        for instruction in ("PAGE", "NUMPAGES"):
+            field = OxmlElement("w:fldSimple")
+            field.set(qn("w:instr"), instruction)
+            footer._p.append(field)
+            if instruction == "PAGE":
+                footer.add_run(" / ")
+        for run in footer.runs:
+            run.font.size = Pt(8)
+        front(document, report, findings, ja, issuer)
+    else:
+        document.add_heading(
+            "ソフトウェアセキュリティ検査報告書" if ja else "Software Security Assessment Report", 0
+        )
+        p(f"{report['customer']} | SecuLens {report['tool']['version']}")
+        p(f"{'対象' if ja else 'Target'} {report['target']} | {report['createdAt']}")
+        p(
+            f"SBOM内の{len(components)}件の構成部品を評価しました。既知の脆弱性に該当する部品は{vulnerable}件、脆弱性照合が未判定の部品は{unresolved}件です。以下の指摘と確認事項に沿って対応してください。"
+            if ja
+            else f"Assessed {len(components)} SBOM components. {vulnerable} components matched known vulnerability records; {unresolved} components have incomplete vulnerability assessments. Review the findings and follow-up actions below."
+        )
+        document.add_heading("検査範囲と根拠" if ja else "Scope and Evidence", 1)
+        p(f"{report['sbom']['format']} {report['sbom']['version']}")
+        p(f"SBOM SHA256 {report['sbomSha256']}")
+        p(f"DB {report['database']['source']}")
+        p(f"DB SHA256 {report['database']['sha256']}")
+        table = document.add_table(rows=1, cols=2)
+        table.style = "Table Grid"
+        table.rows[0].cells[0].text = "分類" if ja else "Category"
+        table.rows[0].cells[1].text = "指摘件数" if ja else "Findings"
+        for category, label in _CATEGORIES.items():
+            cells = table.add_row().cells
+            cells[0].text = label if ja else category
+            cells[1].text = str(sum(f["category"] == category for f in findings))
+        table.autofit = False
+        table.columns[0].width, table.columns[1].width = Mm(120), Mm(50)
+        borders = OxmlElement("w:tblBorders")
+        for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            item = OxmlElement("w:" + edge)
+            for attr, value in (("val", "single"), ("sz", "4"), ("color", "D9D9D9")):
+                item.set(qn("w:" + attr), value)
+            borders.append(item)
+        table._tbl.tblPr.append(borders)
+        for row_index, row in enumerate(table.rows):
+            for column, cell in enumerate(row.cells):
+                cell.width = Mm(120 if column == 0 else 50)
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
                 for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.bold = True
+                    paragraph.paragraph_format.space_before = Pt(4)
+                    paragraph.paragraph_format.space_after = Pt(4)
+                    paragraph.alignment = (
+                        WD_ALIGN_PARAGRAPH.LEFT if column == 0 else WD_ALIGN_PARAGRAPH.CENTER
+                    )
+                if row_index == 0:
+                    shading = OxmlElement("w:shd")
+                    shading.set(qn("w:fill"), "E7EDF3")
+                    cell._tc.get_or_add_tcPr().append(shading)
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.bold = True
     for category, label in _CATEGORIES.items():
         group = [f for f in findings if f["category"] == category]
         if not group:
             continue
-        document.add_heading(label if ja else category, 1)
+        document.add_heading(label if ja else category, 2 if customer_mode else 1)
         for finding in group:
-            document.add_heading(f"{finding['ruleId']} {finding['summary']}", 2)
+            finding_start = len(document.paragraphs)
+            prefix = f"F-{findings.index(finding) + 1:03d}  " if customer_mode else ""
+            document.add_heading(
+                f"{prefix}{finding['ruleId']} {finding['summary']}", 3 if customer_mode else 2
+            )
+            severity_detail(document, finding, ja)
             component = next((c for c in components if c["id"] == finding["subject"]), None)
             subject = (
                 f"{component['name']}@{component.get('version', 'unknown')}"
@@ -217,13 +256,68 @@ def write_word_report(report: dict[str, Any], file: str | Path, language: str = 
                     if ja
                     else "The complete reference list is preserved in the accompanying JSON report."
                 )
-    document.add_heading("構成部品の評価状況" if ja else "Component Assessment Coverage", 1)
-    for component in components:
-        check = next((c for c in report["checks"] if c["componentId"] == component["id"]), {})
+            if customer_mode:
+                paragraphs = document.paragraphs[finding_start:]
+                for paragraph in paragraphs[:-1]:
+                    paragraph.paragraph_format.keep_with_next = True
+                paragraphs[-1].paragraph_format.keep_with_next = False
+    if customer_mode:
+        document.add_page_break()
+        document.add_heading("4 構成部品の評価状況" if ja else "4 Component Assessment Coverage", 1)
+        rows = [
+            [
+                "構成部品" if ja else "Component",
+                "バージョン" if ja else "Version",
+                "照合結果" if ja else "Assessment",
+                "ライセンス" if ja else "Licenses",
+            ]
+        ]
+        for component in components:
+            check = next((c for c in report["checks"] if c["componentId"] == component["id"]), {})
+            rows.append(
+                [
+                    component["name"],
+                    component.get("version", "unknown"),
+                    status(check.get("status", "unassessed")),
+                    "; ".join(component["licenses"]) or ("不明" if ja else "Unknown"),
+                ]
+            )
+        customer_table(document, rows, [65, 25, 30, 50], compact=True)
+        document.add_heading("5 検査の根拠と制約" if ja else "5 Evidence and Limitations", 1)
+        source_analysis = report.get("sourceAnalysis")
+        if source_analysis:
+            p(
+                f"{'コード検査' if ja else 'Source analysis'} {source_analysis['language']} | {source_analysis['target']}"
+            )
+        else:
+            p(
+                "コード検査の実施情報は記録されていません。"
+                if ja
+                else "Source analysis execution metadata was not recorded."
+            )
         p(
-            f"{component['name']}@{component.get('version', 'unknown')} | {status(check.get('status', 'unassessed'))} | {'; '.join(component['licenses']) or 'License unknown'}"
+            "重要度の原データと全参照先は同梱のJSON報告書に記録しています。"
+            if ja
+            else "Raw severity metadata and all references are preserved in the accompanying JSON report."
         )
-    document.add_heading("制約と確認事項" if ja else "Limitations and Review Notes", 1)
+        for text in [
+            f"{report['sbom']['format']} {report['sbom']['version']}",
+            f"DB {report['database']['source']}",
+            f"SBOM SHA256 {report['sbomSha256']}",
+            f"DB SHA256 {report['database']['sha256']}",
+        ]:
+            paragraph = p(text)
+            for run in paragraph.runs:
+                run.font.size = Pt(9)
+    else:
+        document.add_heading("構成部品の評価状況" if ja else "Component Assessment Coverage", 1)
+        for component in components:
+            check = next((c for c in report["checks"] if c["componentId"] == component["id"]), {})
+            p(
+                f"{component['name']}@{component.get('version', 'unknown')} | {status(check.get('status', 'unassessed'))} | {'; '.join(component['licenses']) or 'License unknown'}"
+            )
+    if not customer_mode:
+        document.add_heading("制約と確認事項" if ja else "Limitations and Review Notes", 1)
     for text in report["limitations"] + report["sbom"]["warnings"]:
         p(localize(text))
     document.save(file)

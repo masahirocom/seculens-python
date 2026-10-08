@@ -69,7 +69,7 @@ report = scan_sbom(sbom_text, records, policy={"allow": ["MIT"]}, customer="Cust
 write_word_report(report, "report.docx", language="ja")
 ```
 
-Schema `1.0` is shared with the TypeScript implementation. Advisory matching supports PyPI PEP 440, npm SemVer and stable numeric Composer versions / SemVer prereleases; Composer branches and Git commit ranges can remain unassessed. Full CVSS prioritization, reachability, container/OS scanning and full SAST are future work. Reports do not claim those checks were performed.
+Schema `1.1` is shared with the TypeScript implementation. Advisory matching supports PyPI PEP 440, npm SemVer and stable numeric Composer versions / SemVer prereleases; Composer branches and Git commit ranges can remain unassessed. Customer-specific risk prioritization, reachability, container/OS scanning and full SAST are future work. Reports do not claim those checks were performed.
 
 ## Validation
 
@@ -83,3 +83,31 @@ python -m twine check dist/*
 ```
 
 See [security policy](SECURITY.md). Apache-2.0 code; bundled Japanese font is SIL OFL. [NOTICE](NOTICE) identifies third-party assets.
+
+## Customer report mode
+
+Add `--report-style customer` to generate a formal Word report with a dedicated cover, executive summary, severity colors, a prioritized findings register, numbered details, component coverage tables, evidence hashes and page numbers. Existing standard layout remains available with `--report-style standard` (the default).
+
+```sh
+seculens scan bom.json --db database.json --policy policy.json \
+  --customer "Customer Company" --target "Customer Web Service" \
+  --issuer "Security Assessment Team" --lang ja \
+  --report-style customer --output reports/customer
+```
+
+`--target` supplies a human-readable system name; it defaults to the SBOM filename. `--issuer` supplies the cover's preparer and document author. Both are optional. The report ID incorporates the SBOM hash, DB hash and assessment timestamp. Finding numbers link the register to details; code/license review statuses are separate from vulnerability severity.
+
+Severity colors: Critical / High red, Medium amber, Low blue, None green, Unrated gray. Labels accompany colors for accessibility. Vulnerability counts consolidate aliases per component; category counts include review candidates. CVSS zero / None is a severity band, not proof of absence of vulnerabilities.
+
+Severity comes from validated CVSS 3.0/3.1 base vectors or recognized `database_specific.severity` labels. Package-specific OSV `affected.severity` overrides global vectors for that affected entry. Alias consolidation preserves all provenance and displays the highest supported severity; when sources disagree, the underlying labels/vectors and scores remain available in JSON. CVSS 2/4 vectors and malformed vectors are not calculated. Without other usable metadata these stay Unrated. No severity is inferred from advisory wording, AST review candidates or licenses.
+
+Report JSON schema 1.1 adds optional vulnerability `severity` (level, optional base score, and source record IDs / field paths / raw values) and optional CLI `sourceAnalysis` execution metadata. Presentation sorting does not alter the assessment JSON. Word contains concise severity attribution; full original metadata and references stay in JSON. This mode changes presentation and adds severity evidence, not the vulnerability matching criteria.
+
+Scoring reference: https://www.first.org/cvss/v3.1/specification-document
+OSV field reference: https://ossf.github.io/osv-schema/
+
+```python
+write_word_report(
+    report, "customer.docx", language="ja", style="customer", issuer="Assessment Team"
+)
+```
