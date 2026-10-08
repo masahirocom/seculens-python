@@ -1,10 +1,12 @@
 # SecuLens for Python
 
+[English](README.md) | [日本語](README.jp.md)
+
 Independent Python implementation of SecuLens: assess SPDX / CycloneDX JSON SBOMs against OSV records, apply SPDX license-expression policies, review Python ASTs, and produce customer-facing Word and JSON reports. Python 3.10+; no Node.js or Trivy runtime required.
 
 This is an early release, not a complete SAST or legal compliance determination. A vulnerability match is evidence from the supplied advisory snapshot; a security AST finding is a review candidate.
 
-## Interactive wizard / 対話ウィザード
+## Interactive wizard
 
 Run `seculens` with no arguments to start interactive setup. English is the default: press Enter at the language prompt, or type `ja` for Japanese. Use `seculens wizard --lang ja` to open Japanese setup directly.
 
@@ -16,7 +18,6 @@ seculens wizard --lang ja
 
 Choose an existing SBOM assessment or SBOM generation, then supply the requested paths and options. Assessment asks for a local OSV snapshot or explicit OSV fetching, an optional license policy and source directory, customer / target / preparer, report style, output directory and findings exit policy. Customer report layout is the wizard default. Review the settings and confirm to start. EOF or choosing `n` at the final prompt cancels; Ctrl+C interrupts. OSV fetching sends package names and ecosystems; the wizard displays this before execution.
 
-`seculens` だけで起動すると設定ウィザードが始まります。言語選択でEnterを押すと英語、`ja` を入力すると日本語です。入力した言語をWordレポートにも使います。最後に設定を確認して開始できます。パスは現在の作業フォルダーを基準に入力してください。従来の `scan` / `sbom` コマンドとオプション指定も利用できます。
 
 ## Install
 
