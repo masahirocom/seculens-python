@@ -12,6 +12,7 @@ from .analysis import analyze
 from .core import scan_sbom, sha256
 from .database import fetch_database, validate_database
 from .sbom import parse_sbom
+from .wizard import wizard
 from .word import write_word_report
 
 
@@ -20,11 +21,21 @@ def _json(text: str):
 
 
 def main(argv: list[str] | None = None) -> int:
+    try:
+        return _main(argv)
+    except KeyboardInterrupt:
+        print("\nCancelled / 中止しました。", file=sys.stderr)
+        return 130
+
+
+def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="seculens", description="SBOM assessment and evidence-based customer reports"
     )
-    parser.add_argument("--version", action="version", version="0.2.0")
+    parser.add_argument("--version", action="version", version="0.3.0")
     commands = parser.add_subparsers(dest="command", required=True)
+    interactive = commands.add_parser("wizard", help="Interactive setup in English or Japanese")
+    interactive.add_argument("--lang", choices=("en", "ja"))
     sbom = commands.add_parser("sbom", help="Generate CycloneDX or SPDX JSON using Syft")
     sbom.add_argument("project", type=Path)
     sbom.add_argument("--format", choices=("cyclonedx", "spdx"), default="cyclonedx")
@@ -46,7 +57,18 @@ def main(argv: list[str] | None = None) -> int:
     scan.add_argument("--lang", choices=("en", "ja"), default="en")
     scan.add_argument("-o", "--output", type=Path, default=Path("reports"))
     scan.add_argument("--fail-on-findings", action="store_true")
-    opts = parser.parse_args(argv)
+    args = list(sys.argv[1:] if argv is None else argv)
+    ui_language = "en"
+    if not args:
+        args, ui_language = wizard()
+        if args is None:
+            return 0
+    opts = parser.parse_args(args)
+    if opts.command == "wizard":
+        args, ui_language = wizard(opts.lang)
+        if args is None:
+            return 0
+        opts = parser.parse_args(args)
     try:
         if opts.command == "sbom":
             if not opts.project.is_dir():
@@ -61,7 +83,11 @@ def main(argv: list[str] | None = None) -> int:
             parse_sbom(_json(result.stdout))
             opts.output.parent.mkdir(parents=True, exist_ok=True)
             opts.output.write_text(result.stdout, encoding="utf-8")
-            print(f"SBOM written to {opts.output}")
+            print(
+                f"SBOMを保存しました: {opts.output}"
+                if ui_language == "ja"
+                else f"SBOM written to {opts.output}"
+            )
             return 0
         # Read every input before writing output evidence, even when paths overlap.
         input_text = opts.sbom.read_text(encoding="utf-8")
@@ -71,7 +97,9 @@ def main(argv: list[str] | None = None) -> int:
             records = validate_database(_json(database_text))
         else:
             print(
-                "Fetching OSV candidates: package names and ecosystems are sent to api.osv.dev.",
+                "OSVから取得中: パッケージ名とエコシステムをapi.osv.devへ送信します。"
+                if ui_language == "ja"
+                else "Fetching OSV candidates: package names and ecosystems are sent to api.osv.dev.",
                 file=sys.stderr,
             )
             records = fetch_database(parsed["components"])
@@ -103,7 +131,9 @@ def main(argv: list[str] | None = None) -> int:
             issuer=opts.issuer,
         )
         print(
-            f"{len(parsed['components'])} components; {len(report['findings'])} findings. Reports: {opts.output}"
+            f"構成部品 {len(parsed['components'])}件、指摘 {len(report['findings'])}件。レポート: {opts.output}"
+            if ui_language == "ja"
+            else f"{len(parsed['components'])} components; {len(report['findings'])} findings. Reports: {opts.output}"
         )
         if opts.fail_on_findings and any(
             f["status"] in ("affected", "denied") or f["category"] == "security"

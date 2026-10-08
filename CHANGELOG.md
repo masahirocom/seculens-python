@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Start an interactive setup wizard when `seculens` is run without arguments.
+- Add English (default) and Japanese prompts; propagate the selected language to Word reports.
+- Collect assessment / SBOM generation settings, validate input paths, review settings and confirm before execution.
+- Add `seculens wizard --lang en|ja` for direct language selection; preserve existing CLI commands.
+- Cancel cleanly on EOF or declined execution; support Ctrl+C interruption.
+
 ## 0.2.0
 
 - Add customer report mode: cover, severity summary, findings register, numbered details, component table and page numbers.
